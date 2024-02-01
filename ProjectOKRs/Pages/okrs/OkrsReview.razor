@@ -1,0 +1,272 @@
+@page "/okr/review"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>Đánh giá OKRs</PageTitle>
+
+<div class="tabs">
+    <div class="tabs_name">
+        Đánh giá OKRs
+    </div>
+    <ul>
+        <li class="@(!isTeam ? "is-active" : "")" @onclick="() => isTeam = false">
+            <a class="has-text-weight-normal">Cá nhân</a>
+        </li>
+        <li class="@(isTeam ? "is-active" : "")" @onclick="() => isTeam = true">
+            <a class="has-text-weight-normal">Đội nhóm</a>
+        </li>
+    </ul>
+</div>
+
+<section class="main_content">
+    @if (!isTeam)
+    {
+        <div class="">
+            <div class="inner_section">
+                <table class="table is-fullwidth is-vcentered is-noborder is-responsive">
+                    <thead>
+                        <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
+                            <th class="pt-0">Mục tiêu</th>
+                            <th class="pt-0" width="60px"></th>
+                            <th class="pt-0" width="130px" align="center">Tiến độ</th>
+                            <th class="pt-0" width="120px" align="center">Điểm hệ thống</th>
+                            <th class="pt-0" width="120px" align="center">Tự đánh giá</th>
+                            <th class="pt-0" width="120px" align="center">QL đánh giá</th>
+                            <th class="pt-0" width="110px" align="center">Nhân viên</th>
+                            <th class="pt-0" width="110px" align="center">Quản lý</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var okr in myOkrList)
+                        {
+                            <_ReviewItem data="okr" />
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="">
+            <ul class="columns is-vcentered is-variable is-2 mb-2">
+                <li class="column is-narrow">
+                    <StaticDropdown value="@filterStatus" title="Tất cả trạng thái" data="statusList"
+                        OnUpdate="ChangeFilterStatus" />
+                </li>
+                <li class="column is-one-quarter">
+                    <MemberSearch sources="userList" OnUpdate="ChangeFilterUser" />
+                </li>
+            </ul>
+
+            <div class="inner_section">
+                <table class="table is-fullwidth is-vcentered is-noborder is-responsive">
+                    <thead>
+                        <tr class="is-size-7" style="border-bottom: 1px solid #DEDEDE;">
+                            <th class="pt-0">Mục tiêu</th>
+                            <th class="pt-0" width="60px"></th>
+                            <th class="pt-0" width="130px" align="center">Tiến độ</th>
+                            <th class="pt-0" width="120px" align="center">Điểm hệ thống</th>
+                            <th class="pt-0" width="120px" align="center">Tự đánh giá</th>
+                            <th class="pt-0" width="120px" align="center">QL đánh giá</th>
+                            <th class="pt-0" width="110px" align="center">Nhân viên</th>
+                            <th class="pt-0" width="110px" align="center">Quản lý</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in userList)
+                        {
+                            var okrList = dataOkrList.Where(x => x.user_created == user.Id);
+                            if (!okrList.Any())
+                                continue;
+                            <tr>
+                                <td colspan="8">
+                                    <div class="user_item">
+                                        <div>
+                                            <p class="has-text-weight-semibold has-text-info is-size-6">
+                                                @user.fullname
+                                            </p>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            @foreach (var okr in okrList)
+                            {
+                                <_ReviewItem data="okr" />
+                            }
+                            <tr>
+                                <td colspan="8">
+                                    <hr class="m-0" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (userList.Count == 0 || dataOkrList.Count == 0)
+                {
+                    <div class="py-6 has-text-grey has-text-centered">
+                        Không tìm thấy dữ liệu phù hợp
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    [CascadingParameter]
+    public MainLayout Layout { get; set; }
+    private List<OKRs> myOkrList = new();
+    private List<OKRs> dataOkrList = new();
+    private List<Users> userList = new();
+    private string filterDepartment = null;
+    private int filterStatus = 0;
+    private List<StaticModel> statusList = new();
+    private bool isTeam;
+
+    protected override async Task OnInitializedAsync()
+    {
+        statusList = GetStatusList();
+        myOkrList = await DBOkrs.GetList(Layout.Cycle, Layout.User.Id);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        GetOkrReviewList();
+        showUserList();
+    }
+    private async Task<bool> showUserList()
+    {
+        bool _success = true;
+        try
+        {
+            userList = await DBUsers.GetAllUser();
+        }
+        catch (Exception ex)
+        {
+
+            _success = false;
+        }
+        return _success;
+    }
+    private void ChangeFilterStatus(int value)
+    {
+        filterStatus = value;
+        GetOkrReviewList();
+    }
+    private async Task<bool> ChangeFilterDepartment(string value)
+    {
+        bool _success = true;
+        try
+        {
+            userList.Clear();
+            await JSRuntime.InvokeVoidAsync("taglineHide");
+            if (string.IsNullOrEmpty(value))
+            {
+                filterDepartment = value;
+                GetOkrReviewList();
+                await JSRuntime.InvokeVoidAsync("history.pushState", null, "Đánh giá OKRs", "/okr/review");
+            }
+            else
+            {
+                var listManager = await DBUsers.GetUserRoleManager();
+                var isManager = listManager.Any(x => x.Id == Layout.User.Id);
+                if (isManager)
+                {
+                    filterDepartment = value;
+                    userList = await DBUsers.GetAllUser();
+                    GetOkrReviewList();
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không phải quản lý của phòng ban này!");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _success = false;
+        }
+        return _success;
+    }
+
+    private async Task<bool> ChangeFilterUser(string userId)
+    {
+        bool _success = true;
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("taglineHide");
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var user = await DBUsers.Get(userId);
+                if (user != null)
+                {
+                    if (await DBUsers.CheckManagerRole(user, Layout.User.Id, null))
+                    {
+                        userList = await DBUsers.GetAllUser();
+                        userList = userList.Where(x => x.Id == userId).ToList();
+                        GetOkrReviewList();
+                    }
+                    else
+                        await JSRuntime.InvokeVoidAsync("tagline", false, "Bạn không phải quản lý của " + user.fullname);
+                }
+                else
+                    await JSRuntime.InvokeVoidAsync("tagline", false, "Không tìm thấy dữ liệu!");
+            }
+        }
+        catch (Exception ex)
+        {
+            _success = false;
+        }
+        return _success;
+    }
+
+    private async Task<bool> GetOkrReviewList()
+    {
+        bool _success = true;
+        try
+        {
+            if (string.IsNullOrEmpty(filterDepartment))
+            {
+                // Chỉ hiện thị OKRs mà user là người xem hoặc đánh giá
+                dataOkrList = await DBOkrs.GetListByReview(Layout.Cycle, Layout.User.Id);
+                var userReviews = dataOkrList.Select(x => x.user_created).ToList();
+                userList = await DBUsers.GetAllUser();
+                userList = userList.Where(x => userReviews.Contains(x.Id)).ToList();
+            }
+            else
+            {
+                var userList = await DBUsers.GetAllUser();
+                var userListId = userList.Select(x => x.Id).ToList();
+                dataOkrList = await DBOkrs.GetListReview(Layout.Cycle, userListId);
+            }
+
+            if (filterStatus == 1)
+                dataOkrList.RemoveAll(x => x.review_send_status > 1);
+            else if (filterStatus > 1)
+                dataOkrList.RemoveAll(x => x.review_send_status != filterStatus);
+        }
+        catch (Exception ex)
+        {
+            _success = false;
+        }
+        return _success;
+    }
+
+    private void FilterOkrList()
+    {
+        if (filterStatus == 1)
+            dataOkrList.RemoveAll(x => x.review_send_status > 1);
+        else if (filterStatus > 1)
+            dataOkrList.RemoveAll(x => x.review_send_status != filterStatus);
+    }
+
+    private List<StaticModel> GetStatusList()
+    {
+        var results = new List<StaticModel>();
+        results.Add(new() { id = 1, name = "Trống" });
+        results.Add(new() { id = 2, name = "Chưa xác nhận" });
+        results.Add(new() { id = 3, name = "Đã xác nhận" });
+        return results;
+    }
+}

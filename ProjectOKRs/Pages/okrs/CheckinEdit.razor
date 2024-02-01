@@ -1,0 +1,614 @@
+﻿@page "/okr/checkin/{OkrId}/add"
+@page "/okr/checkin/{OkrId}/{CheckinId}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager navigation
+
+<PageTitle>CFRs - Check-in 1:1</PageTitle>
+
+<div class="tabs">
+  <div class="tabs_name">
+    <a class="icon-text px-0 has-text-link has-text-weight-normal is-size-6" href="/okr/checkin/@okr.user_created">
+      <span class="icon">
+        <span class="material-icons-outlined">
+          keyboard_backspace
+        </span>
+      </span>
+      <span>
+        Trở về
+      </span>
+    </a>
+    <span class="icon-text">
+      <span>
+        Chi tiết OKRs
+      </span>
+    </span>
+  </div>
+  <ul>
+    <li class="is-active">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.Id/info">Check-in 1:1</a>
+    </li>
+    <li class="">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.Id/feedback">Phản hồi</a>
+    </li>
+    <li class="">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.Id/overview">Tổng quan</a>
+    </li>
+  </ul>
+</div>
+
+
+@if (okr != null && okr.user_created == Layout.User.Id)
+{
+  <section class="main_content">
+    <div class="card">
+      <ul class="columns is-vcentered is-variable is-2 mb-5">
+        <li class="column">
+          <h1 class="title is-5 has-text-info">
+            CHECK-IN 1:1
+          </h1>
+        </li>
+        @if (!model.is_done && model.draft && !string.IsNullOrEmpty(model.id))
+        {
+          <li class="column is-narrow">
+            <a class="button is-danger" @onclick="Delete">
+              <span class="icon"><i class="material-icons-outlined is-size-6">delete</i></span>
+              <span>Xóa bản nháp</span>
+            </a>
+          </li>
+        }
+      </ul>
+      <table class="table is-fullwidth is-vcentered is-noborder is-responsive mb-0">
+        <thead>
+          <tr>
+            <th>Mục tiêu</th>
+            <th width="200px" align="center">Tiến độ</th>
+            <th width="100px" align="center">Thay đổi</th>
+            <th width="120px" align="center">Tự tin</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (model != null)
+          {
+            var progress = DBOkrsCheckin.GetProgress(model.key_results, okr.key_results);
+            var okrColor = Shared.ProgressColor(progress);
+
+            <tr>
+              <td>
+                <span class="has-text-weight-semibold has-text-link">
+                  @okr.name
+                </span>
+              </td>
+              <td>
+                <label class="td-label">Tiến độ</label>
+                <div class="td-value">
+                  <div class="progress_has_value">
+                    <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100"></progress>
+                    <span>@Shared.FormatPercent(progress)%</span>
+                  </div>
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Thay đổi</label>
+                <div class="td-value has-text-weight-semibold">
+                  @Shared.FormatPercent(progress - model.progress_prev)%
+                </div>
+              </td>
+              <td align="center">
+                <label class="td-label">Tự tin</label>
+                <div class="td-value">
+                  <div class="select is-fullwidth">
+                    <select @bind="model.confident">
+                      <option value="0">- Chọn -</option>
+                      @foreach (var sl in DBOkrs.Confident())
+                      {
+                        <option value="@sl.id">@sl.name</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="4">
+                <hr class="m-0" />
+              </td>
+            </tr>
+            <tr>
+              <td>Kết quả then chốt</td>
+              <td align="center">Đạt được</td>
+              <td></td>
+              <td align="center">Tự tin</td>
+            </tr>
+            @foreach (var checkin in model.key_results)
+            {
+              var kr = okr.key_results.SingleOrDefault(x => x.id == checkin.id);
+              if (kr != null)
+              {
+                checkin.change = checkin.result - kr.result;
+
+                <tr>
+                  <td>
+                    <span class="has-text-weight-semibold has-text-link">
+                      @kr.name
+                    </span>
+                  </td>
+                  <td colspan="2">
+                    <label class="td-label">Đạt được</label>
+                    <div class="td-value">
+                      <div class="field has-addons">
+                        <div class="control" style="width: 140px">
+                          <InputDouble @bind-Value="checkin.result" @bind-Value:event="OnInput" Class="input has-text-right"
+                                       Text="Đã đạt được" />
+                        </div>
+                        <div class="control is-expanded">
+                          <div class="button is-static has-text-link">
+                            @Shared.ConvertCurrency(kr.goal) @kr.unit
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Tự tin</label>
+                    <div class="td-value">
+                      <div class="select is-fullwidth">
+                        <select @bind="checkin.confident">
+                          <option value="0">- Chọn -</option>
+                          @foreach (var sl in DBOkrs.Confident())
+                          {
+                            <option value="@sl.id">@sl.name</option>
+                          }
+                        </select>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td colspan="4" class="pl-6 pb-4">
+                    <ul class="columns is-multiline is-variable is-2">
+                      @foreach (var qs in DBOkrsCheckin.Question())
+                      {
+                        var checkVal = !string.IsNullOrEmpty(message) && string.IsNullOrEmpty(checkin.questions[qs.id]);
+                        <li class="column is-full">
+                          <div class="has-text-grey">@qs.name</div>
+                          <div class="control pt-2">
+                            <textarea @bind="checkin.questions[qs.id]" class="textarea is_bg @(checkVal ? "is-danger" : "")" rows="3" placeholder="Nhập đầy đủ thông tin bắt buộc..." />
+                          </div>
+                        </li>
+                      }
+                      @if (!model.draft || Layout.User.okr_checkin)
+                      {
+                        <li class="column is-full">
+                          <div class="has-text-grey">Phản hồi KR</div>
+                          <div class="control pt-2">
+                            <textarea @bind="checkin.feedback" class="textarea scrolly" rows="1" placeholder="Nhập phản hồi..." />
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                  </td>
+                </tr>
+              }
+            }
+          }
+        </tbody>
+      </table>
+
+
+
+      <div class="field is-grouped is-grouped-multiline mt-5">
+        @if (!model.is_done && Layout.User.okr_checkin)
+        {
+          <div class="control is-expanded pl-3">
+            <label class="checkbox">
+              <input @bind="okr.done" type="checkbox" />
+              <span class="has-text-weight-semibold">Hoàn thành OKRs</span>
+            </label>
+          </div>
+          <div class="control is-expanded has-text-right">
+            <a class="button is-white has-text-danger" onclick="goBack()">
+              <span>Hủy nhập</span>
+            </a>
+            <a class="button is-link" @onclick="AutoCheckin">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Hoàn tất Check-in</span>
+            </a>
+          </div>
+        }
+        else if (!model.is_done && model.draft)
+        {
+          if (string.IsNullOrEmpty(okr.user_checkin))
+          {
+            <div class="control" style="width: 650px;">
+              <ul class="columns is-multiline is-vcentered is-mobile is-variable is-1">
+                <li class="column is-narrow">
+                  Chọn quản lý check-in
+                </li>
+                <li class="column is-narrow">
+                @{
+                    List<Users> removeCurrentUser = usersList.Where(x => x.Id != Layout.User.Id).ToList();
+                    <MemberSearch sources="removeCurrentUser" OnUpdate="UserSelected" />
+                  }
+                </li>
+                @if (managerList.Count > 0)
+                {
+                  <li class="column is-full">
+                    <div class="buttons">
+                      @foreach (var manager in managerList)
+                      {
+                        <a class="button is-info is-rounded" @onclick="() => managerList.Remove(manager)">
+                          <span>@manager.fullname</span>
+                          <span class="icon">
+                            <i class="material-icons-outlined is-size-6">close</i>
+                          </span>
+                        </a>
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+          <div class="control is-expanded has-text-right">
+            <a class="button is-white has-text-danger" onclick="goBack()">
+              <span>Hủy nhập</span>
+            </a>
+            <a class="button is-link" @onclick="Update">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Hoàn tất</span>
+            </a>
+          </div>
+        }
+        else if (!model.is_done)
+        {
+          <div class="control">
+            Chọn lần check-in tiếp theo
+          </div>
+          <div class="control has-icons-left" style="width: 140px;">
+            <div class="input">
+              <DateRangePicker SingleDatePicker="true" @bind-StartDate="nextCheckin"
+                               MinDate="DateTime.Today.AddDays(1)" Drops="DropsType.Up" />
+            </div>
+            <span class="icon is-left has-text-link">
+              <i class="material-icons-outlined is-size-6">calendar_today</i>
+            </span>
+          </div>
+          <div class="control pl-2">
+            hoặc chọn
+          </div>
+          <div class="control is-expanded pl-3">
+            <label class="checkbox">
+              <input @bind="okr.done" type="checkbox" />
+              <span class="has-text-weight-semibold">Hoàn thành OKRs</span>
+            </label>
+          </div>
+          <div class="control">
+            <a class="button is-white has-text-danger" onclick="goBack()">
+              <span>Trở về</span>
+            </a>
+            <a class="button is-link" @onclick="AlertCheckin">
+              <span class="icon">
+                <i class="material-icons-outlined is-size-6">done</i>
+              </span>
+              <span>Hoàn tất Check-in</span>
+            </a>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+}
+
+@if (showAlertCheckin)
+{
+  <div class="modal is-active">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <div class="modal-card-head">
+        <div class="modal-card-title">Thông báo xác nhận</div>
+      </div>
+      <section class="modal-card-body">
+        <div class="has-text-weight-semibold">
+          Bạn lựa chọn OKRs này đã hoàn thành. Tiến trình OKRs sẽ được lưu trữ và không thể cập nhật nữa.
+          <br />
+          Bạn có chắc chắn muốn tiếp tục?
+        </div>
+      </section>
+      <div class="modal-card-foot">
+        <button class="button is-success" @onclick="ConfirmCheckin">Xác nhận</button>
+        <button class="button" @onclick="() => showAlertCheckin = false">Hủy</button>
+      </div>
+    </div>
+  </div>
+}
+
+@code {
+  [CascadingParameter]
+  public MainLayout Layout { get; set; }
+  [Parameter]
+  public string OkrId { get; set; }
+  [Parameter]
+  public string CheckinId { get; set; }
+  private string message = string.Empty;
+
+  private OKRs okr = null;
+  private OkrsCheckin model = new();
+  private DateTimeOffset? nextCheckin = null;
+    private List<Users> usersList = new();
+  private List<Users> managerList = new();
+  private string filterDepartment = string.Empty;
+  private bool showAlertCheckin = false;
+
+
+  protected override async Task OnInitializedAsync()
+  {
+  }
+
+    protected override async Task OnParametersSetAsync()
+  {
+    okr = await DBOkrs.Get(OkrId);
+    usersList = await DBUsers.GetUserRoleManager();
+    if (okr != null)
+    {
+      if (!string.IsNullOrEmpty(CheckinId))
+        model = await DBOkrsCheckin.Get(CheckinId);
+      else
+      {
+        model = new()
+          {
+            cycle = okr.cycleId,
+            user_created = okr.user_created,
+            okr = okr.Id,
+            progress_prev = DBOkrs.GetProgress(okr.key_results),
+            draft = true,
+            key_results = new()
+          };
+        foreach (var kr in okr.key_results)
+        {
+          model.key_results.Add(new()
+            {
+              id = kr.id,
+              result = kr.result,
+              questions = new() { "", "", "", "" }
+            });
+        }
+      }
+    }
+  }
+
+  private void UserSelected(string value)
+  {
+    var item = usersList.FirstOrDefault(x => x.Id == value);
+    if (item != null && item.Id != Layout.User.Id)
+    {
+      managerList.Add(item);
+      model.user_checkin = value;
+    }
+  }
+
+  private async Task<bool> Delete()
+  {
+    bool _success = true;
+    try
+    {
+      if (!await JSRuntime.InvokeAsync<bool>("confirm", "Bạn có chắc muốn xóa bản check-in nháp này để thực hiện lại?"))
+        return _success;
+
+      await DBOkrsCheckin.Delete(model.id);
+      if (okr.status_checkin_old == 3)
+        okr.status_checkin = 3;
+      else
+        okr.status_checkin = 0;
+
+      okr.date_checkin = okr.date_checkin_confirm;
+      await DBOkrs.Update(okr);
+      navigation.NavigateTo($"/okr/checkin/{okr.Id}/info");
+    }
+    catch (Exception ex)
+    {
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> Update()
+  {
+    bool _success = true;
+    try
+    {
+      if (model.confident == 0)
+        message = "Chưa nhập mức độ tự tin của Mục tiêu !";
+      else if (model.key_results.Where(x => x.confident == 0).Count() > 0)
+        message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
+      else if (ValidationQuestion() == false)
+        message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
+      else if (string.IsNullOrEmpty(okr.user_checkin) && managerList.Count == 0)
+        message = "Bạn chưa chọn quản lý sẽ check-in với bạn !";
+      else
+      {
+        if (string.IsNullOrEmpty(model.id))
+        {
+          // Create Checkin on DB
+          await DBOkrsCheckin.Create(model);
+
+        
+        }
+        else
+          await DBOkrsCheckin.Update(model);
+
+        okr.date_checkin = model.date_created;
+        okr.status_checkin = 1;
+        await DBOkrs.Update(okr);
+        navigation.NavigateTo($"/okr/checkin/{okr.Id}/info");
+        return _success;
+      }
+      await JSRuntime.InvokeVoidAsync("tagline", false, message);
+    }
+    catch (Exception ex)
+    {
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task AlertCheckin()
+  {
+    var key_results = new List<OkrsCheckin.KeyResult>();
+    foreach (var item in okr.key_results)
+    {
+      var krCheckin = model.key_results.SingleOrDefault(x => x.id == item.id);
+      if (krCheckin != null)
+        key_results.Add(krCheckin);
+    }
+    model.key_results = key_results;
+
+    if (model.confident == 0)
+      message = "Chưa nhập mức độ tự tin của Mục tiêu !";
+    else if (model.key_results.Where(x => x.confident == 0).Count() > 0)
+      message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
+    else if (model.key_results.Where(x => string.IsNullOrEmpty(x.feedback)).Count() > 0)
+      message = "Bạn chưa nhập phản hồi cho kết quả then chốt !";
+    else if (nextCheckin == null && !okr.done && !Layout.User.okr_checkin)
+      message = "Bạn chưa chọn lần check-in tiếp theo hoặc chọn Hoàn thành OKRs!";
+    else
+    {
+      // Yêu cầu xác nhận hoàn thành
+      if (okr.done)
+        showAlertCheckin = true;
+      // Không yêu cầu xác nhận
+      else
+        await ConfirmCheckin();
+      return;
+    }
+    await JSRuntime.InvokeVoidAsync("tagline", false, message);
+  }
+
+  private async Task<bool> ConfirmCheckin()
+  {
+    bool _success = true;
+    try
+    {
+      // Update Checkin
+      model.is_done = true;
+      model.date_checkin = DateTime.Now.Ticks;
+      await DBOkrsCheckin.Update(model);
+
+      foreach (var kr in okr.key_results)
+      {
+        var checkin = model.key_results.SingleOrDefault(x => x.id == kr.id);
+        if (checkin != null)
+        {
+          kr.result = checkin.result;
+          kr.change = checkin.change;
+          kr.confident = checkin.confident;
+        }
+      }
+
+      // Update OKRs
+      okr.confident = model.confident;
+      okr.progress_prev = model.progress_prev;
+      okr.status_checkin = 3;
+      okr.status_checkin_old = 3;
+      if (!okr.done && nextCheckin != null)
+        okr.next_checkin = nextCheckin.Value.DateTime.Ticks;
+      await DBOkrs.Update(okr);
+
+      // Tạo lịch checkin
+      var timeCheckin = await DBTimeCheckin.GetbyOkr(okr.Id);
+      if (timeCheckin == null && !okr.done)
+      {
+        timeCheckin = new TimeCheckin();
+        timeCheckin.cycle = Layout.Cycle;
+        timeCheckin.okr = okr.Id;
+        timeCheckin.okr_name = okr.name;
+        timeCheckin.user_create = okr.user_created;
+        timeCheckin.user_checkin = okr.user_checkin;
+        timeCheckin.date_checkin = okr.next_checkin;
+        timeCheckin.status = 0;
+        await DBTimeCheckin.Create(timeCheckin);
+      }
+
+
+      navigation.NavigateTo($"/okr/checkin/{okr.Id}/info", false);
+    }
+    catch (Exception ex)
+    {
+      _success = false;
+    }
+    return _success;
+  }
+
+  private async Task<bool> AutoCheckin()
+  {
+    bool _success = true;
+
+    try
+    {
+      if (model.confident == 0)
+        message = "Chưa nhập mức độ tự tin của Mục tiêu !";
+      else if (model.key_results.Where(x => x.confident == 0).Count() > 0)
+        message = "Chưa nhập mức độ tự tin của Kết quả then chốt !";
+      else if (ValidationQuestion() == false)
+        message = "Bạn cần nhập đầy đủ tất cả thông tin bắt buộc !";
+      else
+      {
+        if(okr.user_checkin != null){
+          model.user_checkin = okr.user_checkin;
+        }
+        // Tạo bản checkin
+        model.draft = false;
+        model.is_done = true;
+        model.date_checkin = DateTime.Now.Ticks;
+        if (string.IsNullOrEmpty(model.id))
+          await DBOkrsCheckin.Create(model);
+        else
+          await DBOkrsCheckin.Update(model);
+
+
+        // Cập nhật lại KR khi checkin
+        foreach (var kr in okr.key_results)
+        {
+          var checkin = model.key_results.SingleOrDefault(x => x.id == kr.id);
+          if (checkin != null)
+          {
+            kr.result = checkin.result;
+            kr.change = checkin.change;
+            kr.confident = checkin.confident;
+          }
+        }
+
+        // Cập nhật OKRs khi checkin
+        okr.status_checkin = 3;
+        okr.status_checkin_old = 3;
+        okr.next_checkin = 0;
+        okr.date_checkin = DateTime.Now.Ticks;
+        okr.confident = model.confident;
+        okr.progress_prev = model.progress_prev;
+        await DBOkrs.Update(okr);
+
+        navigation.NavigateTo($"/okr/checkin/{okr.Id}/info", false);
+      }
+      await JSRuntime.InvokeVoidAsync("tagline", false, message);
+    }
+    catch (Exception ex)
+    {
+      _success = false;
+    }
+    return _success;
+  }
+
+  private bool ValidationQuestion()
+  {
+    foreach (var keyResult in model.key_results)
+    {
+      if (keyResult.questions.Where(x => string.IsNullOrEmpty(x)).Count() > 0
+        || keyResult.questions.Where(x => string.IsNullOrEmpty(x.Trim())).Count() > 0)
+        return false;
+    }
+    return true;
+  }
+}

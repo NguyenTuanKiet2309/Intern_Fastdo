@@ -1,0 +1,81 @@
+<div class="control has-icons-right has_suggest">
+  <input class="input is_bg show_is_active" type="text" placeholder="Chọn người liên kết chéo..." autocomplete="off"
+    @bind="UserSearch" @bind:event="oninput" />
+  <ul class="suggest">
+    @foreach (var item in userSuggests)
+    {
+      <li class="rsitem" @onclick="() => AddCross(item)">
+        <div class="user_item">
+          <span>@item.fullname</span>
+        </div>
+      </li>
+    }
+  </ul>
+  <span class="icon is-right">
+    <i class="material-icons-outlined">search</i>
+  </span>
+</div>
+
+@code {
+  [Parameter]
+  public OKRs.KeyResult Kr { get; set; }
+  [Parameter]
+  public List<Users> UserList { get; set; } = new();
+  [Parameter]
+  public EventCallback<string> OnAddCross { get; set; }
+
+  private List<Users> userSuggests = new();
+  private string filterUserName = string.Empty;
+
+  private string UserSearch
+  {
+    get => filterUserName;
+    set
+    {
+      filterUserName = value;
+      userSuggests = new();
+      if (!string.IsNullOrEmpty(value))
+      {
+        foreach (var item in UserList)
+        {
+          if (SearchKeyword(filterUserName, item.fullname))
+            userSuggests.Add(item);
+        }
+      }
+    }
+  }
+
+  public static bool SearchKeyword(string keyword, string content)
+  {
+    if (!string.IsNullOrEmpty(keyword))
+    {
+      content = content.ToLower();
+      var keyChar = keyword.ToLower().Trim().Split(' ');
+      for (int i = 0; i < keyChar.Length; i++)
+      {
+        if (!content.Contains(keyChar[i]))
+          return false;
+      }
+      return true;
+    }
+    else
+      return true;
+  }
+  private async Task AddCross(Users item)
+  {
+    if (Kr.cross_linking == null)
+      Kr.cross_linking = new();
+    Kr.cross_linking.Add(
+    new OKRs.CrossLink()
+      {
+        id = MongoDB.RandomId(),
+        user = item.Id
+      }
+    );
+
+    userSuggests = new();
+    filterUserName = string.Empty;
+
+    await OnAddCross.InvokeAsync(item.Id);
+  }
+}

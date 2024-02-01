@@ -1,0 +1,68 @@
+#mail {
+  .search {
+    position: relative;
+    display: inline-flex;
+    min-width: 300px;
+    align-items: center;
+    gap: 8px;
+    border: 2px solid transparent;
+    background: #ECF0FF;
+    border-radius: 18px;
+    height: 35px;
+    padding: 0 8px;
+
+    &:hover {
+      .suggest {
+        display: block;
+      }
+    }
+
+    &.is_right {
+      .suggest {
+        right: 0;
+        left: auto;
+      }
+    }
+
+    .suggest {
+      .rsitem {
+        .user_item {
+          span {
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+
+    &.is_fullwidth {
+      width: 100%;
+    }
+
+    .material-icons-outlined {
+      font-size: 16px;
+    }
+
+    font-size: 14px;
+
+    input {
+      width: 100%;
+      font-size: inherit;
+      outline: none;
+      border: none;
+      background-color: transparent;
+
+      &:focus ~ .suggest {
+        display: block;
+      }
+    }
+
+    &.is_small {
+      font-size: 12px;
+      border-radius: 12px;
+    }
+
+    &.is-focused {
+      border: 2px solid #b7c6ff;
+    }
+  }
+}

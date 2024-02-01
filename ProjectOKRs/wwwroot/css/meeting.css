@@ -1,0 +1,63 @@
+﻿.card-agenda {
+  flex: none;
+  width: 340px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #FFF;
+  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.10);
+}
+
+.in-meeting {
+  border-radius: 8px;
+  border: 1px solid #C0C6DC;
+}
+
+.card-list-meeting {
+  border: 1px solid #C0C6DC;
+  border-radius: 8px;
+}
+
+  .card-list-meeting:hover {
+    border-color: transparent;
+    box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, 0.10);
+  }
+
+  .card-list-meeting .is-control{
+    opacity: 0;
+  }
+
+  .card-list-meeting:hover .is-control {
+    opacity: 1;
+  }
+
+.dropdown-location {
+  top: -25px;
+  height: fit-content !important;
+  left: 130px;
+  position: absolute;
+  width: 320px !important;
+}
+
+.dropdown-menu-child {
+  top: -10px;
+  left: auto;
+  right: calc(100% + 2rem);
+  width: 330px;
+}
+
+.card-calendar-meeting {
+  padding: 4px 2px 4px 6px;
+  border-radius: 4px;
+}
+
+.meeting-calendar-status-1 {
+  border-left: 3px solid #266066;
+  background: #F1F7F7;
+  color: #266066;
+}
+
+.meeting-calendar-status-2 {
+  border-left: 3px solid #355CAA;
+  background: #ECF0FF;
+  color: #002C70;
+}

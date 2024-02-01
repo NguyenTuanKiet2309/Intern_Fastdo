@@ -1,0 +1,350 @@
+﻿@page "/okr/checkin/{Id}/feedback"
+@inject IJSRuntime jsruntime
+@inject NavigationManager navigation
+@using Microsoft.AspNetCore.SignalR.Client
+
+<PageTitle>@_title</PageTitle>
+
+<div class="tabs">
+  <div class="tabs_name">
+    <a class="icon-text px-0 has-text-link has-text-weight-normal is-size-6" href="/okr/checkin/@okr.user_created">
+      <span class="icon">
+        <span class="material-icons-outlined">
+          keyboard_backspace
+        </span>
+      </span>
+      <span>
+        Trở về
+      </span>
+    </a>
+    <span class="icon-text">
+      <span>
+        Chi tiết OKRs
+      </span>
+    </span>
+  </div>
+  <ul>
+    <li class="">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.Id/info">Check-in 1:1</a>
+    </li>
+    <li class="is-active">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.Id/feedback">Phản hồi</a>
+    </li>
+    <li class="">
+      <a class="has-text-weight-normal" href="/okr/checkin/@okr.Id/overview">Tổng quan</a>
+    </li>
+  </ul>
+</div>
+
+@if (okr != null)
+{
+  <section class="main_content">
+    <div class="card">
+      <ul class="columns is-vcentered is-variable is-2 mb-2">
+        <li class="column">
+          <h1 class="title is-5 has-text-info">
+            PHẢN HỒI CHECK-IN
+          </h1>
+        </li>
+        <li class="column is-narrow">
+          <div class="field is-grouped">
+            <div class="control has-text-weight-semibold">
+              Chu kỳ Check-in:
+            </div>
+            <div class="control is-expanded">
+              <div class="select is-fullwidth">
+                <select @onchange="ChangeCheckin">
+                  @foreach (var sl in dataList)
+                  {
+                    <option value="@sl.id">
+                      @string.Format("{0:dd/MM/yyyy}", new DateTime(sl.date_created))
+                      @(sl.draft ? " - Bản nháp" : "")
+                    </option>
+                  }
+                  @if (dataList.Count == 0)
+                  {
+                    <option value="">Chưa có Check-in</option>
+                  }
+                </select>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+      <div class="inner_section">
+        @if (model == null)
+        {
+          <div class="py-6 has-text-centered has-text-grey">
+            Chưa có dữ liệu check-in
+          </div>
+        }
+        else
+        {
+          var confident = DBOkrs.Confident(model.confident);
+          var progress = DBOkrsCheckin.GetProgress(model.key_results, okr.key_results);
+          var okrColor = Shared.ProgressColor(progress);
+
+          <div id="feedback" class="scrolly" style="height: calc(100vh - 282px);">
+            <table class="table is-fullwidth is-vcentered is-noborder is-responsive">
+              <thead>
+                <tr>
+                  <th>Mục tiêu</th>
+                  <th width="200px" align="center">Tiến độ</th>
+                  <th width="100px" align="center">Thay đổi</th>
+                  <th width="70px" align="center" class="pl-0">Tự tin</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="is-flex">
+                      <span class="has-text-weight-semibold has-text-link">@okr.name</span>
+                      @if (okr.done)
+                      {
+                        <span class="ml-1 icon" title="OKRs đã hoàn thành">
+                          <i class="material-icons-outlined is-size-6 has-text-success">check_circle</i>
+                        </span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <label class="td-label">Tiến độ</label>
+                    <div class="td-value">
+                      <div class="progress_has_value">
+                        <progress class="progress is-small @okrColor" value="@Convert.ToInt32(progress)" max="100"></progress>
+                        <span>@Shared.FormatPercent(progress)%</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td align="center">
+                    <label class="td-label">Thay đổi</label>
+                    <div class="td-value has-text-weight-semibold">
+                      @Shared.FormatPercent(progress - model.progress_prev)%
+                    </div>
+                  </td>
+                  <td align="center" class="pl-0">
+                    <label class="td-label">Tự tin</label>
+                    <div class="td-value has-text-weight-semibold">
+                      <span class="@confident.color">@confident.name</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="tr-hide">
+                  <td colspan="4">
+                    <hr class="m-0" />
+                  </td>
+                </tr>
+                @foreach (var checkin in model.key_results)
+                {
+                  var kr = okr.key_results.SingleOrDefault(x => x.id == checkin.id);
+                  if (kr != null)
+                  {
+                    <tr>
+                      <td colspan="4">
+                        <span class="has-text-weight-semibold has-text-link">
+                          @kr.name
+                        </span>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colspan="3" class="pr-0">
+                        <div class="has_bg is_radius p-3 is-word-break">
+                          @((MarkupString)Shared.GetLinks(checkin.feedback))
+                        </div>
+                      </td>
+                      <td align="center" class="pl-0">
+                        <a class="icon has-text-link" @onclick="() => Reply(kr.id)" title="Trả lời phản hồi">
+                          <i class="material-icons-outlined is-size-5">reply</i>
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                }
+                @if (model.feedbacks != null)
+                {
+                  <tr>
+                    <td colspan="4" class="pt-3 pr-3">
+                      <ul class="columns is-multiline is-mobile">
+                        @foreach (var item in model.feedbacks)
+                        {
+                          var checkin = model.key_results.SingleOrDefault(x => x.id == item.kr);
+                          var keyResult = okr.key_results.SingleOrDefault(x => x.id == item.kr);
+
+                          if (item.user == Layout.User.Id)
+                          {
+                            <li class="column is-two-fifths is-hidden-mobile"></li>
+                            <li class="column is-three-fifths-tablet is-full-mobile">
+                              <div class="has-background-link has-text-white is-word-break p-3 is_radius">
+                                @if (checkin != null && keyResult != null)
+                                {
+                                  <div class="notification lighter is-italic px-3 py-2 is-size-7 mb-3">
+                                    <p class="text_2_line has-text-link mb-1">@keyResult.name</p>
+                                    <p class="text_2_line has-text-grey">@checkin.feedback</p>
+                                  </div>
+                                }
+                                @((MarkupString)Shared.TextToHtml(item.content))
+                              </div>
+                              <div class="is-clearfix"></div>
+                              <div class="is-size-7 has-text-right pt-1">
+                                @string.Format("{0:HH:mm - dd/MM}", new DateTime(item.date))
+                              </div>
+                            </li>
+                          }
+                          else
+                          {
+                            var user = userList.SingleOrDefault(x => x.Id == item.user);
+                            <li class="column is-three-fifths-tablet is-full-mobile">
+                              @if (user != null)
+                              {
+                                <div class="user_item mb-2">
+    
+                                  <span class="has-text-weight-medium">@user.fullname</span>
+                                </div>
+                              }
+                              <div class="has_bg is-word-break is-pulled-left p-3 is_radius">
+                                @if (checkin != null && keyResult != null)
+                                {
+                                  <div class="notification lighter is-italic px-3 py-2 is-size-7 mb-3">
+                                    <p class="text_2_line has-text-link mb-1">@keyResult.name</p>
+                                    <p class="text_2_line has-text-grey">@checkin.feedback</p>
+                                  </div>
+                                }
+                                @((MarkupString)Shared.TextToHtml(item.content))
+                              </div>
+                              <div class="is-clearfix"></div>
+                              <div class="is-size-7 has-text-left pt-1">
+                                @string.Format("{0:HH:mm - dd/MM}", new DateTime(item.date))
+                              </div>
+                            </li>
+                            <li class="column is-two-fifths is-hidden-mobile"></li>
+                          }
+                        }
+                      </ul>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <div class="field pr-3" style="height: 60px;">
+            @if (!string.IsNullOrEmpty(replyId))
+            {
+              var checkin = model.key_results.SingleOrDefault(x => x.id == replyId);
+              var keyResult = okr.key_results.SingleOrDefault(x => x.id == checkin.id);
+
+              <div class="notification is-italic p-3 is-size-7">
+                <a class="delete" @onclick="CancelReply"></a>
+                <p class="text_1_line has-text-link">@keyResult.name</p>
+                <p class="text_1_line has-text-grey">@checkin.feedback</p>
+              </div>
+            }
+          </div>
+          <div class="field is-grouped pr-3" style="height: 75px;">
+            <div class="control is-expanded has-icons-right">
+              <textarea @bind="replyContent" id="replyInput" class="textarea scrolly" rows="1" placeholder="Nội dung phản hồi..." />
+              <a class="icon is-right has-text-link" onclick="document.getElementById('file').click()"
+                 title="Đính kèm hình ảnh" style="pointer-events: auto;">
+                <i class="material-icons-outlined is-size-5">image</i>
+              </a>
+            
+            </div>
+            <div class="control">
+              <a class="button is-link" @onclick="Send">
+                <span class="icon">
+                  <i class="material-icons-outlined is-size-6">send</i>
+                </span>
+                <span>Gửi</span>
+              </a>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </section>
+}
+else
+{
+  <section class="main_content">
+    <div class="card">
+      Dữ liệu không tồn tại hoặc đã bị xóa
+    </div>
+  </section>
+}
+
+@code {
+    [CascadingParameter]
+    public MainLayout Layout { get; set; }
+    [Parameter]
+    public string Id { get; set; }
+    private List<string> messages = new List<string>();
+    private string _title = "CFRs - Phản hồi Check-in";
+    private HubConnection? hubConnection;
+    private List<OkrsCheckin> dataList = new();
+    private List<Users> userList = new();
+    private OkrsCheckin model = null;
+    private OKRs okr = null;
+    private string replyId = string.Empty;
+    private string replyContent = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {   
+        okr = await DBOkrs.Get(Id, Layout.Cycle);
+        if (okr != null)
+        {
+            dataList = await DBOkrsCheckin.GetList(Layout.Cycle, okr.Id, true);
+            Console.WriteLine("dataList: " + dataList.Count);
+            if (dataList.Count > 0)
+                model = dataList[0];
+            await jsruntime.InvokeVoidAsync("textAutoSize", "replyInput");
+        }
+    }
+
+    private void ChangeCheckin(ChangeEventArgs e)
+    {
+        model = dataList.SingleOrDefault(x => x.id == e.Value.ToString());
+    }
+
+    private async Task Reply(string id)
+    {
+        replyId = id;
+        await jsruntime.InvokeVoidAsync("setFocus", "replyInput");
+    }
+
+    private void CancelReply()
+    {
+        replyId = string.Empty;
+    }
+
+    private async Task<bool> Send()
+    {
+        bool _success = true;
+        try
+        {
+            if (Shared.IsEmptyB(replyContent))
+                await jsruntime.InvokeVoidAsync("tagline", false, "Bạn chưa nhập nội dung phản hồi !");
+            else
+            {
+                model = await DBOkrsCheckin.Get(model.id);
+                if (model.feedbacks == null)
+                    model.feedbacks = new();
+
+                model.feedbacks.Add(new()
+          {
+            id = MongoDB.RandomId(),
+            user = Layout.User.Id,
+            date = DateTime.Now.Ticks,
+            content = replyContent,
+            kr = replyId
+          });
+                model = await DBOkrsCheckin.Update(model);
+                replyId = string.Empty;
+                replyContent = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            _success = false;
+        }
+        return _success;
+    }
+
+}

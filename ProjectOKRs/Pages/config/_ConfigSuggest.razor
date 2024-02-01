@@ -1,0 +1,198 @@
+@page "/config/config-suggest"
+@inject IJSRuntime jsruntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+@if (Layout.User.is_admin)
+{
+  <ul class="columns is-variable is-2 mb-2 is-vcentered">
+    <li class="column">
+      <h1 class="title is-5 has-text-info is-uppercase">
+        Cấu hình loại phiếu góp ý
+      </h1>
+    </li>
+    <li class="column is-narrow">
+      <a class="button" @onclick="() => EditItem(null)">
+        <span class="icon">
+          <span class="material-icons-outlined is-size-6">add</span>
+        </span>
+        <span>Thêm mới</span>
+      </a>
+    </li>
+  </ul>
+  <div class="scrolly inner_section" style="flex:1">
+    <table class="table is-fullwidth is-vcentered is-responsive">
+      <thead>
+        <tr>
+          <th class="pt-0">Tên loại phiếu</th>
+          <th class="pt-0" width="70px" align="center">Xử lý</th>
+        </tr>
+      </thead>
+      <tbody>
+        @foreach (var item in dataList)
+        {
+          <tr>
+            <td>
+              <span class="has-text-weight-semibold">@item.name</span>
+            </td>
+            <td align="center">
+              <label class="td-label">Xử lý</label>
+              <div class="td-value">
+                <a class="icon has-text-link" title="Chỉnh sửa" @onclick="() => EditItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    edit
+                  </i>
+                </a>
+                <a class="icon has-text-danger" title="Xóa" @onclick="() => DeleteItem(item)">
+                  <i class="material-icons-outlined is-size-5">
+                    delete
+                  </i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+
+  @if (ConfigSuggest != null)
+  {
+    <div class="modal is-active">
+      <div class="modal-background"></div>
+      <div class="modal-card">
+        <div class="modal-card-head">
+          <div class="modal-card-title">
+            @(string.IsNullOrEmpty(ConfigSuggest.id) ? "Tạo loại phiếu góp ý mới" : "Chỉnh sửa loại phiếu góp ý")
+          </div>
+          <a class="delete" @onclick="() => ConfigSuggest = null"></a>
+        </div>
+        <div class="modal-card-body">
+          <form @onsubmit="Update">
+            <div class="field">
+              <label class="label">Tên loại phiếu góp ý</label>
+              <div class="control">
+                <input @bind="ConfigSuggest.name" type="text" class="input" />
+              </div>
+            </div>
+            <div class="field mt-5">
+              <div class="buttons is-right">
+                <a class="button" @onclick="() => ConfigSuggest = null">
+                  Hủy
+                </a>
+                <a class="button is-link" @onclick="Update">
+                  <span class="icon">
+                    <span class="material-icons-outlined is-size-6">
+                      done
+                    </span>
+                  </span>
+                  <span>Cập nhật</span>
+                </a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+
+}
+else
+{
+  <section class="main_content">
+    <div> Bạn không có quyền vào trang này</div>
+  </section>
+}
+
+
+@code {
+
+  [CascadingParameter]
+  public MainLayout Layout { get; set; }
+  private bool _loaded = false;
+  private bool success = false;
+  private string _message = string.Empty;
+  public string _title = "CFRs - Góp Ý";
+  private List<ConfigSuggest> dataList = new();
+  private ConfigSuggest ConfigSuggest = null;
+
+
+  protected override async Task OnInitializedAsync()
+  {
+    await getAllConfigSuggests();
+
+  }
+  public async Task getAllConfigSuggests()
+  {
+    dataList = await DBConfigSuggest.GetAllConfigSuggest();
+  }
+  public async Task<bool> DeleteItem(ConfigSuggest ConfigSuggest)
+  {
+    if (!await jsruntime.InvokeAsync<bool>("confirm", $"Are you sure you want to remove {ConfigSuggest.name} ?"))
+    {
+      return false;
+    }
+    else
+    {
+      await DBConfigSuggest.DeleteConfigSuggest(ConfigSuggest.id);
+      await getAllConfigSuggests();
+      return true;
+    }
+  }
+
+  private void EditItem(ConfigSuggest item)
+  {
+    if (item == null)
+    {
+      ConfigSuggest = new();
+    }
+    else
+    {
+      ConfigSuggest = item;
+    }
+  }
+
+  private async Task<bool> Update()
+  {
+    bool success = true;
+    try
+    {
+      _message = string.Empty;
+
+      if (string.IsNullOrEmpty(ConfigSuggest.name))
+      {
+        _message = "Bạn cần nhập tên loại phiếu góp ý!";
+        await jsruntime.InvokeVoidAsync("tagline", false, _message);
+        _message = string.Empty;
+      }
+      else
+      {
+        if (string.IsNullOrEmpty(ConfigSuggest.id))
+        {
+          ConfigSuggest.id = MongoDB.RandomId();
+          dataList.Add(ConfigSuggest);
+          await DBConfigSuggest.CreatedConfigSuggest(ConfigSuggest);
+          await LogMessage("Thêm mới góp ý: " + ConfigSuggest.id);
+          ConfigSuggest = null;
+        }
+        else
+        {
+          await DBConfigSuggest.UpdateConfigSuggest(ConfigSuggest);
+          ConfigSuggest = null;
+        }
+      }
+    }
+    catch (Exception ex)
+    {
+      await LogMessage("Lỗi: " + ex.Message);
+      success = false;
+    }
+    return success;
+  }
+  private async Task LogMessage(string message)
+  {
+    Console.WriteLine(message);
+  }
+}

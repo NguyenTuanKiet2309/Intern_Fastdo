@@ -1,0 +1,153 @@
+<div class="control is-expanded has-icons-left has-icons-right has_suggest">
+  <input class="input is-rounded is-small" type="text" placeholder="Nhập tên nhân viên..." autocomplete="off"
+    @bind="Searching" @bind:event="oninput" />
+  <span class="icon is-left">
+    <i class="material-icons-outlined is-size-6">search</i>
+  </span>
+  <a class="@(string.IsNullOrEmpty(keyword) ? "is-hidden" : "icon is-right has-text-danger")" @onclick="Cancel">
+    <i class="material-icons-outlined">close</i>
+  </a>
+  <ul class="suggest">
+    @if (storage)
+
+    {
+      <li class="rsitem" @onclick="() => Selected(null)">
+        <div class="user_item">
+          <img class="image is-24x24 mr-2" src="" alt="IMG">
+          <span>Không có người tải lên</span>
+        </div>
+      </li>
+    }
+
+    @foreach (var item in suggests)
+
+    {
+      <li class="rsitem" @onclick="() => Selected(item)">
+        <div class="user_item">
+          <span>@item.fullname</span>
+        </div>
+      </li>
+    }
+  </ul>
+</div>
+
+@code {
+  [Parameter]
+  public string keyword { get; set; }
+
+  [Parameter]
+  public List<Users> sources { get; set; }
+
+  [Parameter]
+  public bool storage { get; set; } = false;
+
+  [Parameter]
+  public EventCallback<string> OnUpdate { get; set; }
+  [Parameter]
+  public string IdManager {get;set;}
+  private List<Users> suggests = new();
+
+
+  private string Searching
+
+  {
+
+    get => keyword;
+    set
+    {
+      keyword = value;
+      suggests = GetSuggests();
+
+    }
+
+  }
+  private List<Users> GetSuggests()
+  {
+    var results = new List<Users>();
+
+    Console.WriteLine("list user:" + sources.Count);
+
+    foreach (var item in sources)
+    {
+
+      bool check = true;
+      if (!SearchKeyword(keyword, item.Id + item.Username))
+        check = false;
+      if (check)
+        results.Add(item);
+      if (results.Count >= 5)
+        break;
+    }
+    return results;
+  }
+
+
+
+  private async Task Selected(Users item)
+  {
+    if (item == null)
+    {
+      await OnUpdate.InvokeAsync("no_member");
+    }
+    else
+    {
+      suggests.Clear();
+      keyword = item.fullname;
+      await OnUpdate.InvokeAsync(item.Id);
+
+      Console.WriteLine("Lụm: " + item.Id);
+
+    }
+
+  }
+
+
+
+  private async Task Cancel()
+
+  {
+
+    keyword = null;
+
+    suggests.Clear();
+
+    await OnUpdate.InvokeAsync(null);
+
+  }
+
+
+
+  public static bool SearchKeyword(string keyword, string content)
+
+  {
+
+    if (!string.IsNullOrEmpty(keyword))
+
+    {
+
+      content = content.ToLower();
+
+      var keyChar = keyword.ToLower().Trim().Split(' ');
+
+      for (int i = 0; i < keyChar.Length; i++)
+
+      {
+
+        if (!content.Contains(keyChar[i]))
+
+          return false;
+
+      }
+
+
+
+      return true;
+
+    }
+
+    else
+
+      return true;
+
+  }
+}

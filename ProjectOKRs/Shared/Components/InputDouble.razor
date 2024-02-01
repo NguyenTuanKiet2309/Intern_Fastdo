@@ -1,0 +1,73 @@
+<input @bind="formatData" @bind:event="onchange" class="@Class" style="@Style" type="text" placeholder="@Text" />
+
+@code {
+  [Parameter]
+  public double Value { get; set; }
+  [Parameter]
+  public string Class { get; set; }
+  [Parameter]
+  public string Style { get; set; }
+  [Parameter]
+  public string Text { get; set; }
+  [Parameter]
+  public bool FormatDouble { get; set; }
+  [Parameter]
+  public int Min { get; set; } = 0;
+  [Parameter]
+  public int Max { get; set; } = 0;
+  [Parameter]
+  public EventCallback<double> OnInput { get; set; }
+
+  private string formatData
+  {
+    get => FormatDouble ? ConvertCurrencyDouble(Value) : (Value != 0 ? Format(Value) : "");
+    set
+    {
+      //if (Double.TryParse(value.Replace(".", "").Replace(",", ""), out double parse))
+      if (Double.TryParse(value, out double parse))
+      {
+        if(Min != Max)
+        {
+          if (parse >= Min && parse <= Max)
+            Value = parse;
+          else
+            Value = Min;
+        }
+        else
+          Value = parse;
+      }
+      else
+        Value = 0;
+      OnInput.InvokeAsync(Convert.ToDouble(Value));
+    }
+  }
+    public static string ConvertCurrencyDouble(double money)
+    {
+      if (money == 0)
+        return "0";
+      if (money >= 1000 || money <= -1000)
+      {
+        var numberArray = money.ToString().Split(".");
+        if (numberArray.Length == 2)
+          return Convert.ToDouble(numberArray[0]).ToString("0,0") + "." + numberArray[1];
+        else if (numberArray.Length == 1)
+          return money.ToString("0,0");
+
+        return money.ToString("0,0");
+      }
+      else if (money % 1 == 0)
+        return money.ToString();
+      else if (money != 0)
+        return money.ToString();
+      return "0";
+    }
+  private string Format(double value)
+  {
+    if (value == 0)
+      return "";
+    else if (value >= 1000 || value <= -1000)
+      return value.ToString("0,0");
+    else
+      return value.ToString();
+  }
+}

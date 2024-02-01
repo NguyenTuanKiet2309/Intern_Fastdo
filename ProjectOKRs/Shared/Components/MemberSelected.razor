@@ -1,0 +1,83 @@
+
+<div class="control is-expanded has-icons-left has-icons-right has_suggest">
+  <input class="input is-rounded" type="text" placeholder="@title"
+    autocomplete="off" @bind="Searching" @bind:event="oninput" />
+  <span class="icon is-left">
+    <i class="material-icons-outlined is-size-5">search</i>
+  </span>
+  <a class="@(string.IsNullOrEmpty(keyword) ? "is-hidden" : "icon is-right has-text-danger")" @onclick="Cancel">
+    <i class="material-icons-outlined">close</i>
+  </a>
+  <ul class="suggest">
+    @foreach (var item in suggests)
+    {
+      <li class="rsitem" @onclick="() => Selected(item)">
+        <div class="user_item">
+          <span>@item.fullname</span>
+        </div>
+      </li>
+    }
+  </ul>
+</div>
+
+@code {
+  [Parameter]
+  public List<string> members { get; set; } = new();
+  [Parameter]
+  public List<Users> sources { get; set; }
+  [Parameter]
+  public string title { get; set; } = "Chọn nhân viên..";
+  [Parameter]
+  public string department { get; set; }
+  [Parameter]
+  public EventCallback<List<string>> OnUpdate { get; set; }
+  private string keyword = string.Empty;
+  private List<Users> suggests = new();
+
+  private string Searching
+  {
+    get => keyword;
+    set
+    {
+      keyword = value;
+      suggests = GetSuggests();
+    }
+  }
+
+  private List<Users> GetSuggests()
+  {
+    var results = new List<Users>();
+    foreach (var item in sources)
+    {
+      if (!members.Contains(item.Id))
+      {
+        bool check = true;
+        if(!string.IsNullOrEmpty(department))
+          check = false;
+        if (!Shared.SearchKeyword(keyword, item.Id + item.fullname))
+          check = false;
+        if(check)
+          results.Add(item);
+        if(results.Count >= 5)
+          break;
+      }
+    }
+    return results;
+  }
+
+  private async Task Selected(Users item)
+  {
+    if(!members.Contains(item.Id))
+    {
+      members.Add(item.Id);
+      await OnUpdate.InvokeAsync(members);
+    }
+    suggests.RemoveAll(x => x.Id == item.Id);
+  }
+
+  private void Cancel()
+  {
+    keyword = null;
+    suggests.Clear();
+  }
+}

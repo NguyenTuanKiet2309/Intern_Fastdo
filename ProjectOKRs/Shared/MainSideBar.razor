@@ -1,0 +1,136 @@
+@inject IJSRuntime jsruntime
+@inject NavigationManager navigation
+
+<section id="sidebar" class="is_less is_pin">
+    <a class="button is-white toggle" @onclick="ToggleSettings">
+        <span class="icon">
+            <span class="material-icons-outlined">
+            </span>
+        </span>
+    </a>
+    <nav class="scrolly mt-4">
+        <ul>
+            <li class="@(settingsActive ? "is-active" : "")">
+                <a class="button is-white" @onclick="ToggleSettings">
+                    <span class="icon">
+                        <i class="material-icons-outlined">settings</i>
+                    </span>
+                    <span>Thiết lập</span>
+                    <span class="icon">
+                        <i class="material-icons-outlined is-size-6">arrow_right</i>
+                    </span>
+                </a>
+                <ul style="@(settingsActive ? "display:block;" : "display:none;")">
+                    <li class="">
+                        <a class="button is-white" href="/okr/suggest" previewlistener="true">
+                            <span>Góp ý mục tiêu</span>
+                        </a>
+                    </li>
+                    <li class="">
+                        <a class="button is-white" href="/okr/list" previewlistener="true">
+                            <span>Tạo OKRs</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="">
+                <a class="button is-white" href="/okr/checkin" previewlistener="true">
+                    <span class="icon">
+                        <i class="material-icons-outlined is-size-6">fact_check</i>
+                    </span>
+                    <span>Check in</span>
+                </a>
+
+            </li>
+            <li class="">
+                <a class="button is-white" href="/okr/review" previewlistener="true">
+                    <span class="icon">
+                        <i class="material-icons-outlined is-size-6">reviews</i>
+                    </span>
+                    <span>Đánh giá</span>
+                </a>
+            </li>
+            @if (Layout.User.is_admin)
+            {
+                <li class="@(configActive ? "is-active" : "")">
+                    <a class="button is-white" @onclick="ToggleConfiguration">
+                        <span class="icon">
+                            <i class="material-icons-outlined">privacy_tip</i>
+                        </span>
+                        <span>Cấu hình</span>
+                        <span class="icon">
+                            <i class="material-icons-outlined is-size-6">arrow_right</i>
+                        </span>
+                    </a>
+                    <ul style="@(configActive ? "display:block;" : "display:none;")">
+                        <li class="">
+                            <a class="button is-white" href="/config/cycles" previewlistener="true">
+                                <span class="icon">
+                                    <i class="material-icons-outlined is-size-6">autorenew</i>
+                                </span>
+                                <span>Chu kỳ</span>
+                            </a>
+                        </li>
+                        <li class="">
+                            <a class="button is-white" href="/config/config-suggest" previewlistener="true">
+                                <span class="icon">
+                                    <i class="material-icons-outlined is-size-6">task</i>
+                                </span>
+                                <span>Góp ý</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            }
+        </ul>
+    </nav>
+    <a class="button is-white btn_logout" @onclick="Logout" title="Đăng xuất">
+        <span class="icon">
+            <i class="material-icons-round is-size-6">logout</i>
+        </span>
+        <span>Đăng xuất</span>
+    </a>
+</section>
+@code {
+    [CascadingParameter]
+    public MainLayout Layout { get; set; }
+    public string links { get; set; } = string.Empty;
+    private List<Users> userList = null;
+    private Users user = null;
+    private bool settingsActive = false;
+    private bool configActive = false;
+    private bool toogle = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        getListUser();
+    }
+
+    private void ToggleSettings()
+    {
+        settingsActive = !settingsActive;
+    }
+
+    private void ToggleConfiguration()
+    {
+        configActive = !configActive;
+    }
+
+    private async Task getListUser()
+    {
+        user = await DBUsers.Get(Layout.User.Id);
+    }
+
+    private void Toggle()
+    {
+        toogle = !toogle;
+    }
+      private async Task Logout()
+  {
+    if (!await jsruntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn đăng xuất khỏi phần mềm ?"))
+      return;
+
+    navigation.NavigateTo("/logout", true);
+  }
+  
+}

@@ -1,0 +1,97 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime jsruntime
+@inject NavigationManager navigation
+<PageTitle>ProjectOKRs</PageTitle>
+
+<CascadingValue Value="this">
+    @if (User != null)
+    {
+        <main id="main" class="columns is-gapless is-multiline">
+            <section class="column is-full">
+                <MainHeader />
+            </section>
+            <section class="column is-full">
+                <div class="columns is-variable is-0 is-multiline" id="okr">
+                    <div class="sidebar is_pin">
+                        <MainSideBar />
+                    </div>
+                    <section id="content" class="column has_sidebar ">
+                        @Body
+                    </section>
+                </div>
+            </section>
+        </main>
+    }
+</CascadingValue>
+
+@code {
+    public Users User = null;
+    public string Cycle = null;
+    public bool IsMobile = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var localUser = await jsruntime.InvokeAsync<string>("localStorage.getItem", "_user");
+                localUser = localUser.Trim('"');
+                if (string.IsNullOrEmpty(localUser))
+                {
+                    navigation.NavigateTo("/", true);
+                    return;
+                }
+                else
+                {
+                    User = await DBUsers.Get(localUser);
+                    if (User == null)
+                    {
+                        navigation.NavigateTo("/logout", false);
+                        return;
+                    }
+                    else
+                    {
+                        await GetCycle();
+                       
+                        StateHasChanged();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                await jsruntime.InvokeAsync<string>("console.warn", "LayoutMain: " + ex.ToString());
+            }
+        }
+    }
+
+    private async Task GetCycle()
+    {
+        try
+        {
+                var localCycle = await jsruntime.InvokeAsync<string>("localStorage.getItem", "_cycles");
+                localCycle = localCycle.Trim('"');
+                if (!string.IsNullOrEmpty(localCycle))
+                {
+                    Cycle = localCycle;
+                } 
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+    }
+  public async Task<bool> RefreshData()
+  {
+    bool _success = true;
+    try
+    {
+      await InvokeAsync(StateHasChanged);
+    }
+    catch (Exception ex)
+    {
+      _success = false;
+    }
+    return _success;
+  }
+}

@@ -1,0 +1,204 @@
+@page "/"
+@layout LoginLayout
+@inject NavigationManager NavigationManager
+@using ProjectOKRs.Models
+@using ProjectOKRs.Data
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication.Cookies
+@inject ILocalStorageService localStorage
+@inject IJSRuntime jsruntime
+@inject NavigationManager navigation
+
+<PageTitle>@_title</PageTitle>
+
+<div class="login_form">
+
+    @if (_loaded)
+    {
+        @if (user == null)
+        {
+            <section class="login_fr">
+                <div class="login_form">
+                    <div class="logo">
+                        <img src="/images/logo.png" alt="logo">
+                    </div>
+                    <h1 class="title is-size-2 is-size-5-mobile">
+                        Chào mừng đến với Fastdo
+                    </h1>
+                    <div class="font_14">
+                        Tối ưu vận hành với bộ giải pháp công nghệ của Fastdo
+                    </div>
+                    <form data-gtm-form-interact-id="0" @onsubmit="LoginHome">
+                        <div class="title is-size-5">
+                            Đăng nhập
+                        </div>
+                        <div class="control has-icons-left">
+                            <input type="text" class="input" @bind="@username" placeholder="Nhập tên đăng nhập..."
+                                autocomplete="username" data-gtm-form-interact-field-id="0">
+
+                        </div>
+                        <div class="control has-icons-left has-icons-right">
+                            <input type="password" class="input" @bind="@password" placeholder="Nhập mật khẩu..."
+                                autocomplete="current-password" data-gtm-form-interact-field-id="1">
+
+                        </div>
+
+                        <div class="control"><label class="checkbox"><input type="checkbox" checked="">
+                                <span class="is-size-7">Ghi nhớ mật khẩu</span>
+                            </label>
+                        </div>
+
+                        <button class="button is-link is-fullwidth mb-3 ">
+                            <span class="is-size-7">
+                                Đăng nhập</span>
+                        </button>
+                        <a class="button is-white is-fullwidth" href="/password" previewlistener="true">
+                            <span class="is-size-7">Quên mật khẩu?</span>
+                        </a>
+                    </form>
+                    <div class="is-size-7"><span class="has-text-grey">
+                            Đăng ký người dùng mới?
+                        </span>
+                        <a class="has-text-link has-text-weight-bold" href="https://fastdo.vn/lien-he/" previewlistener="true">
+                            Liên hệ ngay
+                        </a>
+                    </div>
+                </div>
+            </section>
+        }
+        else
+        {
+            <h1 class="title is-size-2 is-size-5-mobile">
+                Chào mừng! @user.fullname
+            </h1>
+            <form class="font_14 container-auth scrolly">
+                <div class="has-text-weight-bold has-text-link mb-3">
+                    Chọn tổ chức đăng nhập
+                </div>
+
+                <div class="icon-text mb-3">
+                    <span class="image is-32x32 mr-2">
+                        <img src="/images/favicon.png" alt="icon" />
+                    </span>
+                    <a class="has-text-black has-text-weight-medium is-size-7" href="/okr/checkin">
+                        OKRs
+                    </a>
+                </div>
+                @if (!string.IsNullOrEmpty(message))
+                {
+                    <div class="has-text-danger has-text-centered is-italic mt-3">@message</div>
+                }
+            </form>
+            <a class="button is-danger is-outlined is-fullwidth" @onclick="Logout">
+                <span class="icon">
+                    <i class="material-icons-outlined is-size-6">logout</i>
+                </span>
+                <span class="has-text-weight-medium">Đăng xuất</span>
+            </a>
+        }
+    }
+    else
+    {
+        <div class="pb-5">
+            <span class="button is-white is-loading">
+                <span>Loading</span>
+            </span>
+        </div>
+    }
+
+</div>
+
+
+
+@code {
+    private string username = string.Empty;
+    private string password = string.Empty;
+    private Users user = null;
+    public string _title = "Fastdo - Login";
+    private List<Cycles> dataList = new();
+    private string message = string.Empty;
+    private bool _loaded = false;
+    private bool loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = await localStorage.GetItemAsync<string>("_user");
+        if (!string.IsNullOrEmpty(userId))
+        {
+            user = await DBUsers.Get(userId);
+        }
+        _loaded = true;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                StateHasChanged();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+    }
+    private async Task LoginHome()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(username))
+            {
+                message = "Tên đăng nhập không được để trống!";
+                return;
+            }
+            if (string.IsNullOrEmpty(password))
+            {
+                message = "Mật khẩu không được để trống!";
+                return;
+            }
+
+            var users = await DBUsers.GetUserByUsername(username);
+            if (users == null)
+            {
+                message = "Tên đăng nhập không tồn tại!";
+                return;
+            }
+            else
+            {
+                var loginUser = await DBUsers.Login(username, password);
+                if (loginUser == null)
+                {
+                    message = "Mật khẩu sai! Vui lòng nhập lại";
+                    return;
+                }
+                else
+                {
+                    await getAllCycles();
+                    user = loginUser;
+                    localStorage.SetItemAsync("_user", loginUser.Id);
+                    localStorage.SetItemAsync("_cycles", dataList[0].id);
+                    message = string.Empty;
+                }
+
+            }
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task Logout()
+    {
+        if (!await jsruntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn đăng xuất khỏi phần mềm ?"))
+            return;
+
+        navigation.NavigateTo("/logout", true);
+    }
+    public async Task getAllCycles()
+    {
+        dataList = await DBCycles.GetAllCycles();
+    }
+}

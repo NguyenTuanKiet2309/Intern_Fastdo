@@ -1,0 +1,111 @@
+@using System.Threading;
+@inherits LayoutComponentBase
+@inject NavigationManager navigation
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<CascadingValue Value="this">
+  @if (!loading)
+  {
+    @if (string.IsNullOrEmpty(link) || link.StartsWith("password"))
+    {
+      <main id="login" style="overflow: hidden">
+        <section class="login_fr">
+          @Body
+        </section>
+        <section class="login_bg">
+          <div class="carousel">
+         
+                @foreach (var item in slides)
+                {
+                  <div class="item">
+                    <div class="item_image">
+                      <img src="@item.Key" alt="img" />
+                    </div>
+                    <div class="item_desc">
+                      @((MarkupString)item.Value)
+                    </div>
+                  </div>
+                }
+             
+            <div class="dots"></div>
+            <div class="arrows"></div>
+          </div>
+        </section>
+      </main>
+    }
+    else
+    {
+      <main>
+        @Body
+      </main>
+    }
+  }
+</CascadingValue>
+
+@code {
+    
+  private Dictionary<string, string> slides = new();
+  private string link = string.Empty;
+  private bool loading = true;
+
+
+  private CancellationTokenSource jsCancel = new CancellationTokenSource();
+  private Timer timer;
+
+  protected override void OnInitialized()
+  {
+    slides.Add("/images/login/1.png", "Doanh nghiệp dễ dàng thiết lập và theo dõi mục tiêu hiệu quả");
+    slides.Add("/images/login/2.png", "Nhân sự tăng hiệu suất vượt bậc khi dễ dàng thiết lập kế hoạch<br />công việc và tạo động lực làm việc vui vẻ hàng ngày");
+    slides.Add("/images/login/3.png", "Tương tác và thấu hiểu giữa những thành viên trong tổ chức.<br />Tạo động lực và thúc đẩy phát triển tổ chức");
+    slides.Add("/images/login/4.png", "Không chỉ là làm việc, Fastdo cung cấp không gian cho phép<br />mọi người phấn đấu và tận hưởng những thành tựu");
+
+   
+  }
+
+  protected override void OnParametersSet()
+  {
+    link = navigation.Uri.Replace(navigation.BaseUri, "");
+  }
+
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (loading)
+    {
+      try
+      {
+
+        loading = false;
+        StateHasChanged();
+
+        await Task.Delay(30000).ContinueWith(arg =>
+        {
+          if (jsCancel != null && loading == true)
+          {
+            loading = false;
+            jsCancel?.Cancel();
+          }
+        });
+      }
+      catch
+      {
+
+      }
+    }
+  }
+
+  public void Dispose()
+  {
+    try
+    {
+      loading = false;
+
+      jsCancel?.Cancel();
+      jsCancel?.Dispose();
+    }
+    catch (Exception ex)
+    {
+      return;
+    }
+  }
+}

@@ -1,0 +1,278 @@
+﻿@inject ILocalStorageService localStorage
+@inject NavigationManager navigation
+@inject IJSRuntime jsruntime
+@using Microsoft.AspNetCore.Components.Web
+
+<section id="header" class="header_main">
+    <ul class="columns is-mobile is-vcentered is-variable is-2">
+        <li class="column is-narrow header_product">
+            <div id="dropdown_1a0b78d7" class="dropdown   ">
+                <div class="dropdown-trigger">
+                    <a class="icon">
+                        <span class="material-icons is-size-5">
+                            dashboard
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </li>
+
+        <li class="column is-hidden-mobile is-narrow">
+            <a href="/homepage" previewlistener="true">
+                <img class="image pr-2" src="/images/logo.png" style="height:24px">
+            </a>
+        </li>
+        <li class="column is-narrow is-hidden-mobile">
+            <a class="icon-text" href="okr/checkin" previewlistener="true">
+                <span class="icon image is-24x24">
+                    <img src="/images/modules/okrs.png" alt="module-image">
+                </span>
+                <span class="has-text-weight-semibold">OKRs</span>
+            </a>
+        </li>
+        <li class="column is-hidden-mobile">
+            <div style="max-width:400px">
+                <div class="control search_bar is_collapse  has-icons-left has-icons-right has_suggest"
+                    title="Nhấn Ctrl + &quot;/&quot; để tìm kiếm">
+                    <input id="search_241IC" class="input is-rounded is-small" type="text" placeholder="Tên ứng dụng..."
+                        autocomplete="off">
+                    <span class="icon is-left">
+                        <i class="material-icons-outlined is-size-5">search</i></span>
+                    <a class="icon is-right has-text-danger">
+                        <i class="material-icons-outlined">
+                            close
+                        </i>
+                    </a>
+                </div>
+            </div>
+        </li>
+        <li class="column is-hidden-tablet"></li>
+
+
+        <li class="column is-hidden-mobile is-narrow">
+            <div id="dropdown_c4d65be1" class="dropdown   ">
+                <div class="dropdown-trigger">
+                    <div class="avatar_list"><a class="image is-rounded is-24x24 mr-1" title="Nguyễn Tuấn Kiệt"><img
+                                src="https://storage.googleapis.com/fastdo-storage.appspot.com/avatar/638409145467817402_boo02301.jpeg"
+                                alt="IMG">
+                            <div class="online_dot">
+
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </li>
+        <li class="column is-hidden-mobile is-narrow">
+            <Dropdown CloseOnClickMenu=true>
+                <Trigger>
+                    <Button IsInverted=true Content="@cycleName" IconRight="arrow_drop_down" />
+                </Trigger>
+                <MenuContent>
+                    @if (dataList == null || dataList.Count == 0)
+                    {
+                        <a class="dropdown-item" style="height: auto; max-width: 150px;">
+                            Chưa có chu kỳ
+                        </a>
+                    }
+                    else
+                    {
+                        @foreach (var item in dataList)
+                        {
+                            <a class="dropdown-item" @onclick="() => ChangeCycle(item.id)" style="height: auto; width: 150px;">
+                                @item.name
+                            </a>
+                        }
+                    }
+                </MenuContent>
+            </Dropdown>
+        </li>
+        <li class="column is-narrow">
+            <div id="dropdown_241b3525" class="dropdown   ">
+                <div class="dropdown-trigger"><a class="icon-text" title="Đổi tổ chức"><span
+                            class="icon image is-24x24 is-rounded"><img
+                                src="https://storage.googleapis.com/fastdo-storage.appspot.com/237O695B8A/237O78146A.png"
+                                alt="Logo">
+                        </span>
+                        <span class="is-hidden-mobile text_1_line" style="max-width:200px">Công ty TNHH Quản trị số
+                            Fastdo</span>
+                        <span class="icon"><span class="material-icons-outlined">
+                                arrow_drop_down
+                            </span>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </li>
+        <li class="column is-narrow">
+            <div id="dropdown_695319af" class="dropdown   ">
+                <div class="dropdown-trigger"><button class="button is-link    is-inverted"><span class="icon"><span
+                                class="material-icons-outlined">help_outline</span></span></button></div>
+            </div>
+        </li>
+        <li class="column is-narrow" style="z-index:9">
+            <div id="dropdown_51350a6a" class="dropdown is-noti  ">
+                <div class="dropdown-trigger"><a class="button is-white"><span class="icon"><i
+                                class="material-icons-outlined is-size-6">
+                                notifications
+                            </i>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </li>
+
+
+        <li class="column is-narrow">
+            <Dropdown Toggle="@(account ? false : false)" MenuStyle="width:250px;overflow:visible" MenuClass="p-3"
+                CloseOnClickMenu=false>
+                <Trigger>
+                    <a class="icon image is-rounded is-24x24">
+                        <img src="https://storage.googleapis.com/fastdo-storage.appspot.com/avatar/638409145467817402_boo02301.jpeg"
+                            alt="">
+                    </a>
+                </Trigger>
+                <MenuContent>
+                    <div class="dropdown-item">
+                        <div class="field is-grouped">
+
+                            <div class="control is-expanded">
+                                <div class="control is-expanded">
+                                    <a class="has-text-black">
+                                        @Layout.User.fullname
+                                    </a>
+                                    <p style="opacity:0.6">
+                                        @Layout.User.Role
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-2 mx-4">
+
+                    <div class="dropdown-item">
+                        <a class="icon-text has-text-link" @onclick="() => account = true">
+                            <span class="icon">
+                                <span class="material-icons-outlined">
+                                    person
+                                </span>
+                            </span>
+                            <span>
+                                Thiết lập tài khoản
+                            </span>
+                        </a>
+                    </div>
+                    <div class="dropdown-item" @onclick="Logout">
+                        <a class="icon-text has-text-danger">
+                            <span class="icon">
+                                <span class="material-icons-outlined">
+                                    logout
+                                </span>
+                            </span>
+                            <span>
+                                Đăng xuất
+                            </span>
+                        </a>
+                    </div>
+                </MenuContent>
+            </Dropdown>
+        </li>
+    </ul>
+</section>
+
+
+@code {
+    [CascadingParameter]
+    public MainLayout Layout { get; set; }
+    private List<Cycles> dataList { set; get; } = new();
+    private bool isDropdownOpen = false;
+    private string cycleName = string.Empty;
+    public Cycles selectedCycle;
+    private bool account;
+    protected override async Task OnInitializedAsync()
+    {
+        await getAllCycles();
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                if (selectedCycle != null)
+                {
+                    await localStorage.SetItemAsync("_cycles", selectedCycle.id);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+        }
+    }
+
+
+    public async Task getAllCycles()
+    {
+        dataList = await DBCycles.GetAllCycles();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(Layout.Cycle))
+        {
+            var cycle = dataList.SingleOrDefault(x => x.id == Layout.Cycle);
+            if (cycle != null)
+            {
+                cycleName = cycle.name;
+            }
+
+            else if (dataList.Count > 0)
+            {
+                await ChangeCycle(dataList[0].id);
+                await localStorage.SetItemAsync("_cycles", dataList[0].id);
+            }
+            else
+                cycleName = "Chọn chu kỳ";
+        }
+        else
+        {
+            cycleName = "Chọn chu kỳ";
+        }
+    }
+    private async Task Logout()
+    {
+        if (!await jsruntime.InvokeAsync<bool>("confirm", $"Bạn có chắc muốn đăng xuất khỏi phần mềm ?"))
+            return;
+
+        navigation.NavigateTo("/logout", true);
+    }
+
+    private async Task ChangeCycle(string id)
+    {
+        // Tìm chu kỳ đang được chọn
+        var cycle = dataList.FirstOrDefault(x => x.id == id);
+        if (cycle != null)
+        {
+            await localStorage.SetItemAsync("_cycles", id);
+            Console.WriteLine("Change Cycle" + id);
+            Layout.User.okr_cycle = id;
+            await DBUsers.Update(Layout.User);
+            navigation.NavigateTo(navigation.Uri, true);
+        }
+
+        isDropdownOpen = false;
+    }
+    private void ToggleDropdown()
+    {
+        isDropdownOpen = !isDropdownOpen;
+    }
+    public async Task refreshData()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+}

@@ -1,0 +1,74 @@
+/*add this to avoid flickering*/
+.plk-dd-inprogess > * {
+  pointer-events: none;
+}
+
+/*dropzone style style*/
+.plk-dd-dropzone {
+  min-height: 10px;
+}
+
+/*drag drop styles*/
+
+.plk-dd-spacing {
+  height: 0px;
+  transition:all 200ms ease;
+}
+
+  .plk-dd-spacing.plk-dd-inprogess {
+    padding:0.5rem;
+    margin:0.5rem 0;
+    border-radius:4px;
+    border:1px dashed #ebebebff;
+  }
+
+  .plk-dd-spacing-dragged-over {
+    padding: 25px;
+  }
+
+.plk-dd-dragged-over {
+  opacity: 1;
+}
+
+  .plk-dd-dragged-over > div {
+    opacity: 1;
+  }
+
+.plk-dd-dragged-over-denied {
+  opacity: 1;
+}
+
+.plk-dd-in-transit {
+  opacity: 1;
+  overflow: hidden;
+}
+
+.plk-dd-in-transit > div {
+  opacity: 0.4;
+}
+
+.plk-dd-draggable > div {
+  transition:all 200ms ease;
+}
+
+@keyframes blinker {
+  50% {
+    opacity: 0;
+  }
+}
+
+.blink_me {
+  animation: blinker 1s linear infinite;
+}
+
+/*for flex demo*/
+
+.plk-dd-noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Old versions of Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}

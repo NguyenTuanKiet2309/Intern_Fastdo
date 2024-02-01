@@ -1,0 +1,27 @@
+﻿@page "/logout"
+@layout LoginLayout
+@inject IJSRuntime JSRuntime
+@inject ILocalStorageService localStorage
+@inject NavigationManager navigation
+
+@code {
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (firstRender)
+    {
+      try
+      {
+          await localStorage.RemoveItemAsync("_user");
+          await localStorage.RemoveItemAsync("_cycles");
+      }
+      catch (Exception ex)
+      {
+        await JSRuntime.InvokeVoidAsync("console.warn", "Logout: " + ex.ToString());
+      }
+      finally
+      {
+        navigation.NavigateTo("/", true);
+      }
+    }
+  }
+}

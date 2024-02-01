@@ -1,0 +1,290 @@
+@page "/config/cycles"
+@inject IJSRuntime jsruntime;
+@inject NavigationManager navigation
+@inject ILocalStorageService localStorage
+<PageTitle>@_title</PageTitle>
+
+@if (Layout.User.is_admin)
+{
+    <section class="main_content">
+        <div class="card flex_column is_fullheight">
+            <ul class="columns is-vcentered is-variable is-2 is-mobile mb-2">
+                <li class="column">
+                    <h1 class="title is-5 is-size-6 has-text-info">
+                        CHU KỲ
+                    </h1>
+                </li>
+                <li class="column is-narrow">
+                    <a class="button" @onclick="() => EditCycles(null)">
+                        <span class="icon">
+                            <i class="material-icons-outlined is-size-6">add</i>
+                        </span>
+                        <span>Thêm Chu kỳ</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="inner_section scrolly" style="flex:1">
+                <table class="table is-fullwidth is-vcentered is-responsive">
+                    <thead>
+                        <tr>
+                            <th class="pt-0">Tên chu kỳ</th>
+                            <th class="pt-0" width="20%">Ngày bắt đầu</th>
+                            <th class="pt-0" width="20%">Ngày kết thúc</th>
+                            <th class="pt-0" width="20%">Trạng thái</th>
+                            <th class="pt-0" width="70px" align="center">Xử lý</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in dataList)
+                        {
+                            <tr>
+                                <td>
+
+                                    <a class="has-text-weight-semibold">@item.name</a>
+
+                                </td>
+                                <td>
+                                    <label class="td-label">Bắt đầu</label>
+                                    <div class="td-value">
+                                        @string.Format("{0:dd/MM/yyyy}", new DateTime(item.start_date))
+                                    </div>
+                                </td>
+                                <td>
+                                    <label class="td-label">Kết thúc</label>
+                                    <div class="td-value">
+                                        @string.Format("{0:dd/MM/yyyy}", new DateTime(item.end_date))
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="td-value">
+                                        @if (item.is_done)
+                                        {
+                                            <span class="tag is-link">Đã hoàn thành</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="tag is-success">Đang thực hiện</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td align="center">
+                                    <label class="td-label">Xử lý</label>
+                                    <div class="td-value">
+                                        <a class="icon has-text-link" @onclick="() => EditCycles(item)">
+                                            <i class="material-icons-outlined is-size-5">edit </i>
+                                        </a>
+                                        <a class="icon has-text-danger" @onclick="()=>DeleteCycles(item)">
+                                            <i class="material-icons-outlined is-size-5">delete</i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    @if (newCycles != null)
+    {
+        <div class="modal is-active">
+            <div class="modal-background">
+
+            </div>
+            <div class="modal-card">
+                <div class="modal-card-head">
+                    <div class="modal-card-title">
+                        @(string.IsNullOrEmpty(newCycles.id) ? "Tạo chu kỳ mới" : "Chỉnh sửa chu kỳ")
+                    </div>
+                    <a @onclick="() => newCycles = null" class="delete"></a>
+                </div>
+                <form class="modal-card-body">
+                    <div class="field">
+                        <label class="label">Tên chu kỳ *</label>
+                        <div class="control">
+                            <input @bind="newCycles.name" type="text" class="input" />
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Trạng thái</label>
+                        <div class="control">
+                            @if (newCycles.is_done)
+                            {
+                                <label class="radio">
+                                    <input type="radio" name="status" @onclick="() => ChangeStatus(false)" />
+                                    <span class="ml-1">Đang thực hiện</span>
+                                </label>
+                                <label class="radio mr-3">
+                                    <input type="radio" name="status" @onclick="() => ChangeStatus(true)" checked />
+                                    <span class="ml-1">Đã hoàn thành</span>
+                                </label>
+                            }
+                            else
+                            {
+                                <label class="radio">
+                                    <input type="radio" name="status" @onclick="() => ChangeStatus(false)" checked />
+                                    <span class="ml-1">Đang thực hiện</span>
+                                </label>
+                                <label class="radio mr-3">
+                                    <input type="radio" name="status" @onclick="() => ChangeStatus(true)" />
+                                    <span class="ml-1">Đã hoàn thành</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                    <div class="field is-grouped" style="margin-bottom:320px">
+                        <div class="control">
+                            <label class="label">Ngày bắt đầu *</label>
+                            <_InputDate @bind-Start="StartDate" />
+                        </div>
+                        <div class="control is-expanded is-hidden-mobile">
+                        </div>
+                        <div class="control">
+                            <label class="label">Ngày kết thúc *</label>
+                            <_InputDate @bind-Start="EndDate" IsRight />
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_message))
+                    {
+                        <div class="has-text-danger has-text-centered is-italic mt-3">@_message</div>
+                    }
+                    <div class="field mt-5">
+                        <div class="buttons is-right">
+                            <a class="button" @onclick="() => newCycles = null">
+                                Hủy
+                            </a>
+                            <a class="button is-link" @onclick="UpdateCycles">
+                                <span class="icon">
+                                    <i class="material-icons-outlined is-size-6">done</i>
+                                </span>
+                                <span>Lưu</span>
+
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <section class="main_content">
+        <div> Bạn không có quyền vào trang này</div>
+    </section>
+}
+
+
+@code {
+    [CascadingParameter]
+    public MainLayout Layout { get; set; }
+    private Cycles newCycles = null;
+
+    private bool success = false;
+    private bool _loaded = false;
+    public string _title = "CFRs - Chu Kỳ";
+    private string _message = string.Empty;
+    private List<Cycles> dataList { set; get; } = new();
+
+    private Cycles configCycles = new();
+    long StartDate { get; set; }
+    long EndDate { get; set; }
+    string nameCycle = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await getAllCycles();
+
+    }
+
+    public async Task getAllCycles()
+    {
+        dataList = await DBCycles.GetAllCycles();
+    }
+
+
+    public async Task<bool> DeleteCycles(Cycles cycles)
+    {
+        if (!await jsruntime.InvokeAsync<bool>("confirm", $"Are you sure you want to remove {cycles.name} ?"))
+        {
+            return false;
+        }
+        else
+        {
+            await DBCycles.DeleteCycles(cycles.id);
+            await getAllCycles();
+            navigation.NavigateTo(navigation.Uri,true);
+            return true;
+        }
+    }
+    private void ChangeStatus(bool done)
+    {
+        newCycles.is_done = done;
+    }
+    private void EditCycles(Cycles item)
+    {
+        if (item == null)
+        {
+            newCycles = new()
+                {
+                    start_date = Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks,
+                    end_date = Convert.ToDateTime(DateTime.Now.ToShortDateString()).Ticks,
+                };
+        }
+        else
+        {
+            newCycles = item;
+        }
+
+
+    }
+    private async Task<bool> UpdateCycles()
+    {
+        bool success = true;
+
+        try
+        {
+            success = false;
+            _message = string.Empty;
+
+            if (string.IsNullOrEmpty(newCycles.name) || StartDate == 0 || EndDate == 0)
+            {
+                _message = "Nhập các trường bắt buộc (*)";
+                await jsruntime.InvokeVoidAsync("tagline", false, _message);
+                _message = string.Empty;
+            }
+            else if (StartDate > EndDate)
+            {
+                _message = "Ngày bắt đầu không thể lớn hơn ngày kết thúc!";
+                await jsruntime.InvokeVoidAsync("tagline", false, _message);
+                _message = string.Empty;
+            }
+            else
+            {
+                newCycles.start_date = StartDate;
+                newCycles.end_date = EndDate;
+
+                if (string.IsNullOrEmpty(newCycles.id))
+                {
+                    newCycles.id = MongoDB.RandomId();
+                    dataList.Add(newCycles);
+                    await DBCycles.CreatedCycles(newCycles);
+                     navigation.NavigateTo(navigation.Uri,true);
+                    newCycles = null;
+                }
+
+                dataList = dataList.OrderByDescending(x => x.start_date).ToList();
+                await DBCycles.UpdateCycles(newCycles);
+
+                newCycles = null;
+                navigation.NavigateTo(navigation.Uri,true);
+            }
+        }
+        catch (Exception ex)
+        {
+            success = false;
+        }
+        return success;
+    }
+}
